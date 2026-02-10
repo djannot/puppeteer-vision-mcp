@@ -24,6 +24,7 @@ export async function visitWebPage({
   autoInteract = true,
   maxInteractionAttempts = 3,
   waitForNetworkIdle = true,
+  includeSameDomainLinks = false,
 }: WebpageScrapeOptions): Promise<ScrapeResult> {
   // Launch puppeteer with stealth plugin and respect headless configuration
   const browser = await puppeteerExtra.launch({
@@ -53,18 +54,57 @@ export async function visitWebPage({
     }
     
     // Extract content after handling interactions
-    const htmlContent: string = await page.evaluate(() => {
-      // Try to select the main content area, fallback to the body if no specific selector
-      const main = document.querySelector('main') || 
-                  document.querySelector('article') || 
-                  document.querySelector('.content') ||
-                  document.querySelector('#content') ||
-                  document.body;
-      return main.innerHTML;
-    });
+    const { htmlContent, sameDomainLinks } = await page.evaluate((shouldCollectLinks: boolean) => {
+      const pageUrl = window.location.href;
+      const pageHost = window.location.hostname;
+      let sameDomainLinks: string[] = [];
+      if (shouldCollectLinks) {
+        const links = Array.from(document.querySelectorAll('a[href]'))
+          .map(anchor => anchor.getAttribute('href')?.trim())
+          .filter((href): href is string => Boolean(href));
+
+        sameDomainLinks = links
+          .filter(href => {
+            const lowerHref = href.toLowerCase();
+            return !(
+              lowerHref.startsWith('#') ||
+              lowerHref.startsWith('mailto:') ||
+              lowerHref.startsWith('tel:') ||
+              lowerHref.startsWith('javascript:')
+            );
+          })
+          .map(href => {
+            try {
+              const url = new URL(href, pageUrl);
+              if (url.protocol.startsWith('http') && url.hostname === pageHost) {
+                return url.toString();
+              }
+              return null;
+            } catch {
+              return null;
+            }
+          })
+          .filter((href): href is string => Boolean(href));
+      }
+
+      const main = document.querySelector('main') ||
+        document.querySelector('article') ||
+        document.querySelector('.content') ||
+        document.querySelector('#content') ||
+        document.body;
+
+      return {
+        htmlContent: main.innerHTML,
+        sameDomainLinks,
+      };
+    }, includeSameDomainLinks);
 
     // Process the HTML content
-    const markdown = await processHtmlContent(htmlContent);
+    const markdown = await processHtmlContent(
+      htmlContent,
+      url,
+      includeSameDomainLinks ? sameDomainLinks : undefined
+    );
     
     await browser.close();
     console.log(`Successfully scraped and converted to markdown: ${url}`);

@@ -17,6 +17,7 @@ export interface WebpageScrapeOptions {
   autoInteract?: boolean;
   maxInteractionAttempts?: number;
   waitForNetworkIdle?: boolean;
+  includeSameDomainLinks?: boolean;
 }
 
 // Scraper result

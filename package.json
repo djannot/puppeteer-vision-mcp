@@ -1,6 +1,6 @@
 {
     "name": "puppeteer-vision-mcp-server",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "MCP Server for scraping webpages and converting to markdown",
     "main": "build/index.js",
     "type": "module",

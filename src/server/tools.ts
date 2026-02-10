@@ -15,9 +15,16 @@ export function registerTools(server: McpServer): void {
       url: z.string().url().describe("The URL of the webpage to scrape"),
       autoInteract: z.boolean().optional().default(true).describe("Whether to automatically handle interactive elements like cookies, captchas, etc."),
       maxInteractionAttempts: z.number().int().min(0).max(10).optional().default(3).describe("Maximum number of interaction attempts"),
-      waitForNetworkIdle: z.boolean().optional().default(true).describe("Whether to wait for network to be idle before processing")
+      waitForNetworkIdle: z.boolean().optional().default(true).describe("Whether to wait for network to be idle before processing"),
+      includeSameDomainLinks: z.boolean().optional().default(false).describe("Whether to append a list of same-domain links to the markdown output")
     },
-    async ({ url, autoInteract, maxInteractionAttempts, waitForNetworkIdle }, _extra) => {
+    async ({
+      url,
+      autoInteract,
+      maxInteractionAttempts,
+      waitForNetworkIdle,
+      includeSameDomainLinks,
+    }, _extra) => {
       console.log(`Received scrape request for URL: ${url}, autoInteract: ${autoInteract}, maxAttempts: ${maxInteractionAttempts}`);
 
       try {
@@ -25,7 +32,8 @@ export function registerTools(server: McpServer): void {
           url, 
           autoInteract, 
           maxInteractionAttempts,
-          waitForNetworkIdle
+          waitForNetworkIdle,
+          includeSameDomainLinks
         });
 
         if (result.error) {
